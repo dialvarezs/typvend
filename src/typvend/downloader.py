@@ -13,6 +13,8 @@ from pathlib import Path
 
 import niquests
 
+from typvend import __version__
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,7 +55,7 @@ def download_package(
 
     url = f"https://packages.typst.org/{namespace}/{name}-{version}.tar.gz"
     logger.info("Downloading %s...", url)
-    headers = {"User-Agent": "typvend/0.1.0"}
+    headers = {"User-Agent": f"typvend/{__version__}"}
 
     try:
         response = niquests.get(url, headers=headers, timeout=30)
