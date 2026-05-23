@@ -48,23 +48,22 @@ def fetch_index(namespace: str = "preview") -> list[dict[str, Any]]:
     return data
 
 
-def parse_semver(version_str: str) -> tuple[int, int, int]:
+def parse_semver(version_str: str) -> tuple[int, int, int] | None:
     """Parses a semver version string into a tuple of integers.
 
     Args:
         version_str: A string of the form "major.minor.patch".
 
     Returns:
-        A tuple (major, minor, patch). If the version is invalid, returns
-        (0, 0, 0).
+        A tuple (major, minor, patch), or None if the version is invalid.
     """
     parts = version_str.split(".")
     if len(parts) != 3:  # noqa: PLR2004
-        return (0, 0, 0)
+        return None
     try:
         return int(parts[0]), int(parts[1]), int(parts[2])
     except ValueError:
-        return (0, 0, 0)
+        return None
 
 
 def resolve_latest_version(pkg_name: str, namespace: str = "preview") -> str:
@@ -79,19 +78,21 @@ def resolve_latest_version(pkg_name: str, namespace: str = "preview") -> str:
 
     Raises:
         ValueError: If the package is not found in the index.
+        TypeError: If the upstream index response has an unexpected type.
     """
     index_data = fetch_index(namespace)
-    versions = []
+    versions: list[tuple[tuple[int, int, int], str]] = []
     for pkg in index_data:
         if pkg.get("name") == pkg_name:
             version = pkg.get("version")
             if isinstance(version, str):
-                versions.append(version)
+                parsed = parse_semver(version)
+                if parsed is not None:
+                    versions.append((parsed, version))
 
     if not versions:
         msg = f"Package '{pkg_name}' not found in namespace '{namespace}'"
         raise ValueError(msg)
 
-    # Sort versions using semver
-    versions.sort(key=parse_semver)
-    return versions[-1]
+    versions.sort(key=lambda v: v[0])
+    return versions[-1][1]

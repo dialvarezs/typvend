@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def scan_file(file_path: Path, namespace: str = "preview") -> set[tuple[str, str]]:
     """Scans a single file for package imports in the given namespace.
 
-    Matches imports like `@preview/pkg:0.1.0`.
+    Matches imports like `@<namespace>/<pkg>:<version>`.
 
     Args:
         file_path: The path of the file to scan.
