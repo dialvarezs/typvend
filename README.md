@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/typvend?style=flat-square)](https://pypi.org/project/typvend/)
 [![PyVersions](https://img.shields.io/pypi/pyversions/typvend?style=flat-square)](https://github.com/dialvarezs/typvend)
-[![Tests](https://img.shields.io/github/actions/workflow/status/dialvarezs/typvend/tests.yml?style=flat-square)](https://github.com/dialvarezs/typvend/actions/workflows/tests.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/dialvarezs/typvend/test.yml?style=flat-square)](https://github.com/dialvarezs/typvend/actions/workflows/test.yml)
 ![License](https://img.shields.io/github/license/dialvarezs/typvend?style=flat-square)
 
 `typvend` is a lightweight Python CLI utility designed to vendor official Typst packages locally for offline development, sandboxed builds, or containerized production CI/CD workflows.
