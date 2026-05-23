@@ -382,8 +382,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "niquests", specifier = ">=3.6.0" },
-    { name = "platformdirs", specifier = ">=4.0" },
+    { name = "niquests", specifier = ">=3.18.0" },
+    { name = "platformdirs", specifier = ">=4.9" },
 ]
 
 [package.metadata.requires-dev]
