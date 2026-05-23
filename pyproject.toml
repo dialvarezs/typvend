@@ -1,7 +1,62 @@
 [project]
 name = "typvend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Typst Package Vendoring CLI"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "platformdirs>=4.0",
+    "niquests>=3.6.0",
+]
+
+[project.scripts]
+typvend = "typvend.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "pyrefly>=1.0",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812", # Conflicts with formatter
+    "ISC001", # Conflicts with formatter
+    "S202",   # tarfile.extractall is safe as we use filter/validation
+    "TRY301", # Abstract raise is too pedantic
+    "TRY400", # We explicitly log or swallow tracebacks based on verbose flag
+    "TRY401", # Redundant exception object is preferred for clarity
+    "BLE001", # Graceful top-level exception catching is standard in CLIs
+]
+
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",   # asserts are standard in pytest
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/typvend"]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
+
+
