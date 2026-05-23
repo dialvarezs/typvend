@@ -61,7 +61,7 @@ def download_package(
         response = niquests.get(url, headers=headers, timeout=30)
         response.raise_for_status()
         content = response.content
-        if content is None:
+        if not content:
             msg = f"Failed to download package: no content received from {url}"
             raise ValueError(msg)
     except niquests.RequestException as e:
@@ -73,22 +73,16 @@ def download_package(
     dest_abs = dest_dir.resolve()
 
     tar_data = io.BytesIO(content)
-    try:
-        with tarfile.open(fileobj=tar_data, mode="r:gz") as tar:
-            if sys.version_info >= (3, 12):
-                # Python 3.12+ safe extraction filter
-                tar.extractall(path=dest_dir, filter="data")
-            else:
-                # Manual validation for older versions
-                for member in tar.getmembers():
-                    member_path = (dest_dir / member.name).resolve()
-                    if dest_abs not in member_path.parents and member_path != dest_abs:
-                        msg = f"Attempted directory traversal in tarball: {member.name}"
-                        raise ValueError(msg)
-                tar.extractall(path=dest_dir)
-    except (tarfile.TarError, ValueError) as e:
-        msg = f"Attempted directory traversal in tarball: {e}"
-        raise ValueError(msg) from e
+    with tarfile.open(fileobj=tar_data, mode="r:gz") as tar:
+        if sys.version_info >= (3, 12):
+            tar.extractall(path=dest_dir, filter="data")
+        else:
+            for member in tar.getmembers():
+                member_path = (dest_dir / member.name).resolve()
+                if dest_abs not in member_path.parents and member_path != dest_abs:
+                    msg = f"Attempted directory traversal in tarball: {member.name}"
+                    raise ValueError(msg)
+            tar.extractall(path=dest_dir)
 
     logger.info("Successfully vendored %s:%s", name, version)
     return True
