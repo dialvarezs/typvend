@@ -3,6 +3,7 @@ name = "typvend"
 version = "0.1.0"
 description = "Typst Package Vendoring CLI"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
 dependencies = [
     "platformdirs>=4.9",
