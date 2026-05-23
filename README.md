@@ -19,8 +19,9 @@ The solution is to either run the compilation once to fetch the packages or down
 
 ## Usage
 
+You can run `typvend` directly using [uv](https://docs.astral.sh/uv/).
+
 ```bash
-# Install and run instantly using uvx / pipx
 uvx typvend --help
 ```
 
