@@ -6,9 +6,11 @@ and configures logging.
 
 import argparse
 import logging
+import re
 import sys
 from pathlib import Path
 
+import niquests
 import platformdirs
 
 from typvend.downloader import download_package
@@ -35,6 +37,9 @@ def parse_package_arg(pkg: str) -> tuple[str, str]:
 
     Returns:
         A tuple (name, version) where version is "latest" if not specified.
+
+    Raises:
+        ValueError: If the package name is empty or contains invalid characters.
     """
     if "@" in pkg:
         parts = pkg.split("@", 1)
@@ -43,6 +48,11 @@ def parse_package_arg(pkg: str) -> tuple[str, str]:
     else:
         name = pkg
         version = "latest"
+
+    if not name or not re.fullmatch(r"[a-zA-Z0-9_-]+", name):
+        msg = f"Invalid package name: '{name}'. Only alphanumeric, hyphens, underscores allowed."
+        raise ValueError(msg)
+
     return name, version
 
 
@@ -79,11 +89,9 @@ def handle_add(args: argparse.Namespace) -> int:
                 namespace=namespace,
                 force=force,
             )
-        except Exception as e:
+        except (ValueError, TypeError, niquests.RequestException, OSError):
             failed = True
-            logger.error("Error vendoring package '%s': %s", pkg_arg, e)
-            if args.verbose:
-                logger.exception(e)
+            logger.error("Error vendoring package '%s'", pkg_arg, exc_info=args.verbose)
 
     return 1 if failed else 0
 
@@ -124,11 +132,9 @@ def handle_scan(args: argparse.Namespace) -> int:
                 namespace=namespace,
                 force=force,
             )
-        except Exception as e:
+        except (ValueError, TypeError, niquests.RequestException, OSError):
             failed = True
-            logger.error("Error vendoring package '%s:%s': %s", name, version, e)
-            if args.verbose:
-                logger.exception(e)
+            logger.error("Error vendoring package '%s:%s'", name, version, exc_info=args.verbose)
 
     return 1 if failed else 0
 
@@ -166,7 +172,7 @@ def main() -> None:
     add_parser.add_argument(
         "packages",
         nargs="+",
-        help=("Package name(s) optionally with version (e.g. fontawesome or fontawesome@0.6.0)"),
+        help="Package name(s) optionally with version (e.g. fontawesome or fontawesome@0.6.0)",
     )
 
     scan_parser = subparsers.add_parser(

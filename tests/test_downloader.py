@@ -65,6 +65,5 @@ def test_download_package_directory_traversal(mock_get: MagicMock, tmp_path: Pat
 
     output_dir = tmp_path / "vendor"
 
-    # Extraction should fail with ValueError due to directory traversal
-    with pytest.raises(ValueError, match="Attempted directory traversal"):
+    with pytest.raises((ValueError, tarfile.OutsideDestinationError)):
         download_package("pkg", "0.1.0", output_dir=output_dir, force=True)

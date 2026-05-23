@@ -11,8 +11,8 @@ def test_parse_semver() -> None:
     """Tests that semver strings are parsed correctly into numeric tuples."""
     assert parse_semver("0.5.0") == (0, 5, 0)
     assert parse_semver("10.12.3") == (10, 12, 3)
-    assert parse_semver("1.2") == (0, 0, 0)
-    assert parse_semver("invalid") == (0, 0, 0)
+    assert parse_semver("1.2") is None
+    assert parse_semver("invalid") is None
 
 
 @patch("typvend.index.fetch_index")
