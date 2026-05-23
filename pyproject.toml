@@ -5,8 +5,8 @@ description = "Typst Package Vendoring CLI"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "platformdirs>=4.0",
-    "niquests>=3.6.0",
+    "platformdirs>=4.9",
+    "niquests>=3.18.0",
 ]
 
 [project.scripts]
@@ -23,6 +23,9 @@ dev = [
     "pyrefly>=1.0",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/typvend"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100
@@ -32,31 +35,22 @@ select = ["ALL"]
 ignore = [
     "COM812", # Conflicts with formatter
     "ISC001", # Conflicts with formatter
-    "S202",   # tarfile.extractall is safe as we use filter/validation
+    "S202", # tarfile.extractall is safe as we use filter/validation
     "TRY301", # Abstract raise is too pedantic
     "TRY400", # We explicitly log or swallow tracebacks based on verbose flag
     "TRY401", # Redundant exception object is preferred for clarity
     "BLE001", # Graceful top-level exception catching is standard in CLIs
 ]
 
-
-
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
-    "S101",   # asserts are standard in pytest
+    "S101", # asserts are standard in pytest
 ]
-
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/typvend"]
 
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",
-    "**/*.ipynb",
 ]
-
-
