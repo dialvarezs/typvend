@@ -1,4 +1,4 @@
-# typvend — Typst Package Vendoring CLI
+# typvend
 
 [![PyPI](https://img.shields.io/pypi/v/typvend?style=flat-square)](https://pypi.org/project/typvend/)
 [![PyVersions](https://img.shields.io/pypi/pyversions/typvend?style=flat-square)](https://github.com/dialvarezs/typvend)
