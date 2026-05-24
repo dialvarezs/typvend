@@ -25,7 +25,7 @@ def download_package(
     namespace: str = "preview",
     *,
     force: bool = False,
-) -> bool:
+) -> None:
     """Downloads and extracts a Typst package to the local directory.
 
     Args:
@@ -34,10 +34,6 @@ def download_package(
         output_dir: The base vendor output directory.
         namespace: The namespace of the package (e.g. "preview").
         force: If True, overwrite the package even if it already exists.
-
-    Returns:
-        True if the package was downloaded and extracted, False if it was
-        skipped because it already exists and force was False.
 
     Raises:
         ValueError: If a directory traversal is detected in the tarball.
@@ -51,25 +47,28 @@ def download_package(
             version,
             dest_dir,
         )
-        return False
+        return
 
     url = f"https://packages.typst.org/{namespace}/{name}-{version}.tar.gz"
     logger.info("Downloading %s...", url)
     headers = {"User-Agent": f"typvend/{__version__}"}
 
-    try:
-        response = niquests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()
-        content = response.content
-        if not content:
-            msg = f"Failed to download package: no content received from {url}"
-            raise ValueError(msg)
-    except niquests.RequestException as e:
-        logger.error("Failed to download package %s:%s: %s", name, version, e)
-        raise
+    response = niquests.get(url, headers=headers, timeout=30)
+    response.raise_for_status()
+    content = response.content
+    if not content:
+        msg = f"Failed to download package: no content received from {url}"
+        raise ValueError(msg)
 
     logger.info("Extracting %s to %s...", name, dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
+    _extract_tar(content, dest_dir)
+
+    logger.info("Successfully vendored %s:%s", name, version)
+
+
+def _extract_tar(content: bytes, dest_dir: Path) -> None:
+    """Extract a gzipped tarball while preventing directory traversal."""
     dest_abs = dest_dir.resolve()
 
     tar_data = io.BytesIO(content)
@@ -83,6 +82,3 @@ def download_package(
                     msg = f"Attempted directory traversal in tarball: {member.name}"
                     raise ValueError(msg)
             tar.extractall(path=dest_dir)
-
-    logger.info("Successfully vendored %s:%s", name, version)
-    return True

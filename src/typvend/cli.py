@@ -20,6 +20,7 @@ from typvend.scanner import scan_path
 
 logger = logging.getLogger("typvend")
 VENDORING_ERRORS = (ValueError, TypeError, niquests.RequestException, OSError)
+PACKAGE_NAME_PATTERN = r"[a-zA-Z0-9_-]+"
 
 
 def main() -> None:
@@ -101,15 +102,11 @@ def parse_package_arg(pkg: str) -> tuple[str, str]:
     Raises:
         ValueError: If the package name is empty or contains invalid characters.
     """
-    if "@" in pkg:
-        parts = pkg.split("@", 1)
-        name = parts[0]
-        version = parts[1] or "latest"
-    else:
-        name = pkg
+    name, separator, version = pkg.partition("@")
+    if not separator or not version:
         version = "latest"
 
-    if not name or not re.fullmatch(r"[a-zA-Z0-9_-]+", name):
+    if not name or not re.fullmatch(PACKAGE_NAME_PATTERN, name):
         msg = f"Invalid package name: '{name}'. Only alphanumeric, hyphens, underscores allowed."
         raise ValueError(msg)
 

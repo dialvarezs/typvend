@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+PACKAGE_NAME_PATTERN = r"[a-zA-Z0-9_-]+"
 
 
 def scan_file(file_path: Path, namespace: str = "preview") -> set[tuple[str, str]]:
@@ -23,21 +24,15 @@ def scan_file(file_path: Path, namespace: str = "preview") -> set[tuple[str, str
     Returns:
         A set of tuples (package_name, version).
     """
-    found: set[tuple[str, str]] = set()
-    pattern = re.compile(rf"@{re.escape(namespace)}/([a-zA-Z0-9_-]+):(\d+\.\d+\.\d+)")
+    pattern = re.compile(rf"@{re.escape(namespace)}/({PACKAGE_NAME_PATTERN}):(\d+\.\d+\.\d+)")
 
     try:
         content = file_path.read_text(encoding="utf-8", errors="ignore")
     except OSError as e:
         logger.warning("Could not read file %s: %s", file_path, e)
-        return found
+        return set()
 
-    for match in pattern.finditer(content):
-        pkg_name = match.group(1)
-        version = match.group(2)
-        found.add((pkg_name, version))
-
-    return found
+    return {(match.group(1), match.group(2)) for match in pattern.finditer(content)}
 
 
 def scan_path(path: Path, namespace: str = "preview") -> set[tuple[str, str]]:

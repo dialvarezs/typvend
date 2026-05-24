@@ -31,6 +31,7 @@ def create_mock_tarball(files: dict[str, bytes]) -> bytes:
 @patch("niquests.get")
 def test_download_package(mock_get: MagicMock, tmp_path: Path) -> None:
     """Tests successful package download, extraction, and override behavior."""
+    expected_forced_download_count = 2
     mock_tar = create_mock_tarball({"lib.typ": b"// lib content", "typst.toml": b"name = 'pkg'"})
     mock_response = MagicMock()
     mock_response.content = mock_tar
@@ -39,20 +40,20 @@ def test_download_package(mock_get: MagicMock, tmp_path: Path) -> None:
     output_dir = tmp_path / "vendor"
 
     # Download first time
-    downloaded = download_package("pkg", "0.1.0", output_dir=output_dir, force=False)
-    assert downloaded is True
+    download_package("pkg", "0.1.0", output_dir=output_dir, force=False)
 
     pkg_dir = output_dir / "preview" / "pkg" / "0.1.0"
     assert (pkg_dir / "lib.typ").read_text(encoding="utf-8") == "// lib content"
     assert (pkg_dir / "typst.toml").read_text(encoding="utf-8") == "name = 'pkg'"
+    assert mock_get.call_count == 1
 
     # Try downloading again without force (should skip)
-    downloaded_again = download_package("pkg", "0.1.0", output_dir=output_dir, force=False)
-    assert downloaded_again is False
+    download_package("pkg", "0.1.0", output_dir=output_dir, force=False)
+    assert mock_get.call_count == 1
 
     # Try downloading again with force
-    downloaded_force = download_package("pkg", "0.1.0", output_dir=output_dir, force=True)
-    assert downloaded_force is True
+    download_package("pkg", "0.1.0", output_dir=output_dir, force=True)
+    assert mock_get.call_count == expected_forced_download_count
 
 
 @patch("niquests.get")

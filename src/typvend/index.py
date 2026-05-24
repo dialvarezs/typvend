@@ -94,5 +94,4 @@ def resolve_latest_version(pkg_name: str, namespace: str = "preview") -> str:
         msg = f"Package '{pkg_name}' not found in namespace '{namespace}'"
         raise ValueError(msg)
 
-    versions.sort(key=lambda v: v[0])
-    return versions[-1][1]
+    return max(versions, key=lambda v: v[0])[1]
