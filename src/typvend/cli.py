@@ -8,6 +8,7 @@ import argparse
 import logging
 import re
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 
 import niquests
@@ -18,6 +19,65 @@ from typvend.index import resolve_latest_version
 from typvend.scanner import scan_path
 
 logger = logging.getLogger("typvend")
+VENDORING_ERRORS = (ValueError, TypeError, niquests.RequestException, OSError)
+
+
+def main() -> None:
+    """Main entry point for the CLI."""
+    parent_parser = argparse.ArgumentParser(add_help=False)
+    parent_parser.add_argument(
+        "-o", "--output", help="Custom output directory for vendored packages"
+    )
+    parent_parser.add_argument(
+        "--namespace",
+        default="preview",
+        help="Package namespace (default: preview)",
+    )
+    parent_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Re-download package even if destination already exists",
+    )
+    parent_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output logging",
+    )
+
+    parser = argparse.ArgumentParser(description="typvend — Typst Package Vendoring CLI")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    add_parser = subparsers.add_parser(
+        "add", parents=[parent_parser], help="Add explicit package(s) by name"
+    )
+    add_parser.add_argument(
+        "packages",
+        nargs="+",
+        help="Package name(s) optionally with version (e.g. fontawesome or fontawesome@0.6.0)",
+    )
+    add_parser.set_defaults(func=handle_add)
+
+    scan_parser = subparsers.add_parser(
+        "scan",
+        parents=[parent_parser],
+        help="Scan files/directories and vendor all discovered package imports",
+    )
+    scan_parser.add_argument("path", help="Path to file or directory to scan for imports")
+    scan_parser.set_defaults(func=handle_scan)
+
+    args = parser.parse_args()
+
+    # Configure logging
+    log_level = logging.INFO if args.verbose else logging.WARNING
+    logging.basicConfig(
+        level=log_level,
+        format="%(levelname)s: %(message)s",
+    )
+    logger.setLevel(log_level)
+
+    sys.exit(args.func(args))
 
 
 def get_default_output() -> Path:
@@ -65,35 +125,19 @@ def handle_add(args: argparse.Namespace) -> int:
     Returns:
         0 if all packages were successfully vendored, 1 otherwise.
     """
-    namespace: str = args.namespace
-    output_dir = Path(args.output) if args.output else get_default_output()
-    force: bool = args.force
-
-    failed = False
-
     # Type refinement
     packages: list[str] = args.packages
+    package_specs: list[tuple[str, str, str]] = []
 
     for pkg_arg in packages:
         name, version = parse_package_arg(pkg_arg)
-        try:
-            if version == "latest":
-                logger.info("Resolving latest version for %s...", name)
-                version = resolve_latest_version(name, namespace)
-                logger.info("Latest version resolved to %s", version)
+        package_specs.append((name, version, pkg_arg))
 
-            download_package(
-                name=name,
-                version=version,
-                output_dir=output_dir,
-                namespace=namespace,
-                force=force,
-            )
-        except (ValueError, TypeError, niquests.RequestException, OSError):
-            failed = True
-            logger.error("Error vendoring package '%s'", pkg_arg, exc_info=args.verbose)
-
-    return 1 if failed else 0
+    return _vendor_packages(
+        package_specs,
+        args=args,
+        resolve_latest=True,
+    )
 
 
 def handle_scan(args: argparse.Namespace) -> int:
@@ -106,8 +150,6 @@ def handle_scan(args: argparse.Namespace) -> int:
         0 if all discovered packages were successfully vendored, 1 otherwise.
     """
     namespace: str = args.namespace
-    output_dir = Path(args.output) if args.output else get_default_output()
-    force: bool = args.force
     scan_target = Path(args.path)
 
     if not scan_target.exists():
@@ -122,81 +164,42 @@ def handle_scan(args: argparse.Namespace) -> int:
         logger.info("No packages found to vendor.")
         return 0
 
+    package_specs = [(name, version, f"{name}:{version}") for name, version in sorted(packages)]
+    return _vendor_packages(
+        package_specs,
+        args=args,
+    )
+
+
+def _vendor_packages(
+    packages: Iterable[tuple[str, str, str]],
+    *,
+    args: argparse.Namespace,
+    resolve_latest: bool = False,
+) -> int:
+    """Vendors package specs and returns a CLI status code."""
+    namespace: str = args.namespace
+    output_dir = Path(args.output) if args.output else get_default_output()
+    force: bool = args.force
     failed = False
-    for name, version in sorted(packages):
+
+    for name, version, label in packages:
         try:
+            resolved_version = version
+            if resolve_latest and version == "latest":
+                logger.info("Resolving latest version for %s...", name)
+                resolved_version = resolve_latest_version(name, namespace)
+                logger.info("Latest version resolved to %s", resolved_version)
+
             download_package(
                 name=name,
-                version=version,
+                version=resolved_version,
                 output_dir=output_dir,
                 namespace=namespace,
                 force=force,
             )
-        except (ValueError, TypeError, niquests.RequestException, OSError):
+        except VENDORING_ERRORS:
             failed = True
-            logger.error("Error vendoring package '%s:%s'", name, version, exc_info=args.verbose)
+            logger.error("Error vendoring package '%s'", label, exc_info=args.verbose)
 
     return 1 if failed else 0
-
-
-def main() -> None:
-    """Main entry point for the CLI."""
-    parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument(
-        "-o", "--output", help="Custom output directory for vendored packages"
-    )
-    parent_parser.add_argument(
-        "--namespace",
-        default="preview",
-        help="Package namespace (default: preview)",
-    )
-    parent_parser.add_argument(
-        "-f",
-        "--force",
-        action="store_true",
-        help="Re-download package even if destination already exists",
-    )
-    parent_parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Enable verbose output logging",
-    )
-
-    parser = argparse.ArgumentParser(description="typvend — Typst Package Vendoring CLI")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    add_parser = subparsers.add_parser(
-        "add", parents=[parent_parser], help="Add explicit package(s) by name"
-    )
-    add_parser.add_argument(
-        "packages",
-        nargs="+",
-        help="Package name(s) optionally with version (e.g. fontawesome or fontawesome@0.6.0)",
-    )
-
-    scan_parser = subparsers.add_parser(
-        "scan",
-        parents=[parent_parser],
-        help="Scan files/directories and vendor all discovered package imports",
-    )
-    scan_parser.add_argument("path", help="Path to file or directory to scan for imports")
-
-    args = parser.parse_args()
-
-    # Configure logging
-    log_level = logging.INFO if args.verbose else logging.WARNING
-    logging.basicConfig(
-        level=log_level,
-        format="%(levelname)s: %(message)s",
-    )
-    logger.setLevel(log_level)
-
-    if args.command == "add":
-        code = handle_add(args)
-    elif args.command == "scan":
-        code = handle_scan(args)
-    else:
-        code = 1
-
-    sys.exit(code)
