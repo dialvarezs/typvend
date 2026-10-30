@@ -4,21 +4,21 @@ dynamic = ["version"]
 description = "Typst Package Vendoring CLI"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "Diego Alvarez S.", email = "dialvarezs@gmail.com" },
 ]
 keywords = ["typst", "vendoring", "offline", "packages", "cli"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Utilities",
 ]
 dependencies = [
@@ -48,7 +48,7 @@ pattern = '__version__ = "(?P<version>[^"]+)"'
 packages = ["src/typvend"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]
@@ -61,6 +61,7 @@ ignore = [
     "TRY400", # We explicitly log or swallow tracebacks based on verbose flag
     "TRY401", # Redundant exception object is preferred for clarity
     "BLE001", # Graceful top-level exception catching is standard in CLIs
+    "CPY001",
 ]
 
 [tool.ruff.lint.pydocstyle]
