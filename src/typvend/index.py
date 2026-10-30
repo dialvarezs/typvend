@@ -8,7 +8,7 @@ from typing import Any
 
 import niquests
 
-from typvend import __version__
+from typvend import USER_AGENT
 
 # In-memory cache for index.json requests. Key is namespace.
 _INDEX_CACHE: dict[str, list[dict[str, Any]]] = {}
@@ -30,7 +30,7 @@ def fetch_index(namespace: str = "preview") -> list[dict[str, Any]]:
         return _INDEX_CACHE[namespace]
 
     url = f"https://packages.typst.org/{namespace}/index.json"
-    headers = {"User-Agent": f"typvend/{__version__}"}
+    headers = {"User-Agent": USER_AGENT}
 
     try:
         response = niquests.get(url, headers=headers, timeout=15)

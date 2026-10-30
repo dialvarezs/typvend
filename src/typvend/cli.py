@@ -8,7 +8,6 @@ import argparse
 import logging
 import re
 import sys
-from collections.abc import Iterable
 from pathlib import Path
 
 import niquests
@@ -16,11 +15,10 @@ import platformdirs
 
 from typvend.downloader import download_package
 from typvend.index import resolve_latest_version
-from typvend.scanner import scan_path
+from typvend.scanner import PACKAGE_NAME_PATTERN, scan_path
 
 logger = logging.getLogger("typvend")
 VENDORING_ERRORS = (ValueError, TypeError, niquests.RequestException, OSError)
-PACKAGE_NAME_PATTERN = r"[a-zA-Z0-9_-]+"
 
 
 def main() -> None:
@@ -76,7 +74,6 @@ def main() -> None:
         level=log_level,
         format="%(levelname)s: %(message)s",
     )
-    logger.setLevel(log_level)
 
     sys.exit(args.func(args))
 
@@ -106,7 +103,7 @@ def parse_package_arg(pkg: str) -> tuple[str, str]:
     if not separator or not version:
         version = "latest"
 
-    if not name or not re.fullmatch(PACKAGE_NAME_PATTERN, name):
+    if not re.fullmatch(PACKAGE_NAME_PATTERN, name):
         msg = f"Invalid package name: '{name}'. Only alphanumeric, hyphens, underscores allowed."
         raise ValueError(msg)
 
@@ -122,19 +119,7 @@ def handle_add(args: argparse.Namespace) -> int:
     Returns:
         0 if all packages were successfully vendored, 1 otherwise.
     """
-    # Type refinement
-    packages: list[str] = args.packages
-    package_specs: list[tuple[str, str, str]] = []
-
-    for pkg_arg in packages:
-        name, version = parse_package_arg(pkg_arg)
-        package_specs.append((name, version, pkg_arg))
-
-    return _vendor_packages(
-        package_specs,
-        args=args,
-        resolve_latest=True,
-    )
+    return _vendor_packages([parse_package_arg(pkg) for pkg in args.packages], args=args)
 
 
 def handle_scan(args: argparse.Namespace) -> int:
@@ -161,18 +146,13 @@ def handle_scan(args: argparse.Namespace) -> int:
         logger.info("No packages found to vendor.")
         return 0
 
-    package_specs = [(name, version, f"{name}:{version}") for name, version in sorted(packages)]
-    return _vendor_packages(
-        package_specs,
-        args=args,
-    )
+    return _vendor_packages(sorted(packages), args=args)
 
 
 def _vendor_packages(
-    packages: Iterable[tuple[str, str, str]],
+    packages: list[tuple[str, str]],
     *,
     args: argparse.Namespace,
-    resolve_latest: bool = False,
 ) -> int:
     """Vendors package specs and returns a CLI status code."""
     namespace: str = args.namespace
@@ -180,10 +160,10 @@ def _vendor_packages(
     force: bool = args.force
     failed = False
 
-    for name, version, label in packages:
+    for name, version in packages:
         try:
             resolved_version = version
-            if resolve_latest and version == "latest":
+            if version == "latest":
                 logger.info("Resolving latest version for %s...", name)
                 resolved_version = resolve_latest_version(name, namespace)
                 logger.info("Latest version resolved to %s", resolved_version)
@@ -197,6 +177,6 @@ def _vendor_packages(
             )
         except VENDORING_ERRORS:
             failed = True
-            logger.error("Error vendoring package '%s'", label, exc_info=args.verbose)
+            logger.error("Error vendoring package '%s:%s'", name, version, exc_info=args.verbose)
 
     return 1 if failed else 0
