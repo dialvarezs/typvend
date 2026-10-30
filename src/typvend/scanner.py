@@ -45,13 +45,7 @@ def scan_path(path: Path, namespace: str = "preview") -> set[tuple[str, str]]:
     Returns:
         A set of tuples (package_name, version).
     """
-    found: set[tuple[str, str]] = set()
-
     if path.is_file():
         return scan_file(path, namespace)
 
-    if path.is_dir():
-        for file in path.rglob("*.typ"):
-            found.update(scan_file(file, namespace))
-
-    return found
+    return set().union(*(scan_file(file, namespace) for file in path.rglob("*.typ")))

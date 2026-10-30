@@ -7,13 +7,12 @@ its contents to the local vendor directory.
 
 import io
 import logging
-import sys
 import tarfile
 from pathlib import Path
 
 import niquests
 
-from typvend import __version__
+from typvend import USER_AGENT
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,7 @@ def download_package(
 
     url = f"https://packages.typst.org/{namespace}/{name}-{version}.tar.gz"
     logger.info("Downloading %s...", url)
-    headers = {"User-Agent": f"typvend/{__version__}"}
+    headers = {"User-Agent": USER_AGENT}
 
     response = niquests.get(url, headers=headers, timeout=30)
     response.raise_for_status()
@@ -69,16 +68,5 @@ def download_package(
 
 def _extract_tar(content: bytes, dest_dir: Path) -> None:
     """Extract a gzipped tarball while preventing directory traversal."""
-    dest_abs = dest_dir.resolve()
-
-    tar_data = io.BytesIO(content)
-    with tarfile.open(fileobj=tar_data, mode="r:gz") as tar:
-        if sys.version_info >= (3, 12):
-            tar.extractall(path=dest_dir, filter="data")
-        else:
-            for member in tar.getmembers():
-                member_path = (dest_dir / member.name).resolve()
-                if dest_abs not in member_path.parents and member_path != dest_abs:
-                    msg = f"Attempted directory traversal in tarball: {member.name}"
-                    raise ValueError(msg)
-            tar.extractall(path=dest_dir)
+    with tarfile.open(fileobj=io.BytesIO(content), mode="r:gz") as tar:
+        tar.extractall(path=dest_dir, filter="data")
